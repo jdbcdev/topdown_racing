@@ -1,0 +1,42 @@
+<project>
+ <properties touchToMouse="1" assetsOnly="0" logicalWidth="480" logicalHeight="800" fps="30" autorotation="0" encryptCode="0" scaleMode="3" architecture="0" retinaDisplay="0" mouseTouchOrder="0" packageName="com.yourdomain.yourapp" mouseToTouch="1" iosDevice="0" orientation="1" encryptAssets="0">
+  <imageScales/>
+ </properties>
+ <folder name="scenes">
+  <file source="track.lua"/>
+ </folder>
+ <folder name="classes">
+  <file source="classes/scenemanager.lua"/>
+  <file source="classes/gtween.lua"/>
+  <file source="classes/GiderosCodingEasy.lua"/>
+  <file source="classes/easing.lua"/>
+  <file source="classes/camera.lua"/>
+ </folder>
+ <folder name="images">
+  <file source="images/yellow.png"/>
+  <file source="images/tree_short.png"/>
+  <file source="images/blue_car.png"/>
+  <file source="images/tree_ugly.png"/>
+  <file source="images/right.png"/>
+  <file source="images/left.png"/>
+  <file source="images/jdbc_games.png"/>
+  <file source="images/goal.png"/>
+  <file source="images/yellow_car.png"/>
+  <file source="images/white_car.png"/>
+  <file source="images/tile6.png"/>
+  <file source="images/tile5.png"/>
+  <file source="images/tile4.png"/>
+  <file source="images/tile3.png"/>
+  <file source="images/tile2.png"/>
+  <file source="images/tile1.png"/>
+  <file source="images/tile1_blue.png"/>
+  <file source="images/tile1 (copia).png"/>
+  <file source="images/red_car.png"/>
+  <file source="images/pink_car.png"/>
+  <file source="images/orange_car.png"/>
+  <file source="images/green_car.png"/>
+  <file source="images/grass.png"/>
+ </folder>
+ <file source="tree.lua"/>
+ <file source="main.lua"/>
+</project>
