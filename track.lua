@@ -3,7 +3,7 @@ require "box2d"
 
 TrackScene = Core.class(Sprite)
 
-local MAX_SPEED = 10
+local MAX_SPEED = 5
 
 local width = application:getContentWidth()
 local height = application:getContentHeight()
@@ -11,7 +11,7 @@ local height = application:getContentHeight()
 local half_width = width * 0.5
 local half_height = height * 0.5
 
-local bg_height = 4 * height + height * 0.5
+local bg_height = 6 * height
 local maxY = bg_height - half_height
 --[[
 local track = {
@@ -54,6 +54,7 @@ local random = math.random
 local cos = math.cos
 local sin = math.sin
 local rad = math.rad
+local deg = math.deg
 
 -- Constructor
 function TrackScene:init()
@@ -66,26 +67,70 @@ function TrackScene:init()
 	self.speed = 0
 	self.velocity = {0, -1} -- Velocity vector
 	self.inc = 0
+		
+	self:drawBackground()
+	self:drawCircuit()
+	
+	self:addEventListener("enterEnd", self.enterEnd, self)
+end
+
+
+function TrackScene:enterEnd()
+		
+	self:debugEnabled()
+	
+	self:drawPlayer()
+	
+	-- Create box2d camera following car player
+	local camera = Camera.new(self)
+	self.camera = camera
+	camera:update()
+	
+	self:drawController()
+	
+	print("DIFF", self.worldHeight - self.player:getY())
+	print("player", self.player:getPosition())
+	print("body", self.player.body:getPosition())
+	
+	self:addEventListener(Event.ENTER_FRAME, self.onEnterFrame, self)
+end
+
+-- Draw grass background
+function TrackScene:drawBackground()
 	
 	local map = Sprite.new()
 	self:addChild(map)
 	self.map = map
 	
-	--local camera = Camera.new(map)
-	--camera:setDragMode()
-	--camera:setFollowMode()
-	--camera:setZoom(zoom)
-	--self.camera = camera
+	local bg = Shape.new()
+	bg:setFillStyle(Shape.TEXTURE, Texture.new("images/grass.png", true, {wrap = Texture.REPEAT}) )    
+	bg:beginPath(Shape.NON_ZERO)
+	bg:moveTo(0,0)
+	bg:lineTo(4 * width, 0)
+	bg:lineTo(4 * width, bg_height)
+	bg:lineTo(0, bg_height)
+	bg:lineTo(0, 0)
+	bg:endPath()
+		
+	self.map:addChild(bg)
 	
-	self:drawBackground()
+	self.worldWidth = map:getWidth()
+	self.worldHeight = map:getHeight()
 	
+	print(self.worldWidth, self.worldHeight)
+	
+end
+
+-- Draw tiled circuit
+function TrackScene:drawCircuit()
 	local dirX, dirY = 1, -1	
-	--local posX, posY = -100, -100
-	local posX, posY = 270, 200
+	local posX, posY = 270, 2000
 	local previous_tile, previous_index
 	
 	self.objects = {}
 	self.points = {} -- Polygon shape
+	
+	local map = self.map
 	
 	for a=1, #track do
 		local index = track[a]
@@ -164,60 +209,6 @@ function TrackScene:init()
 	for a=1, #self.objects do
 		self.map:addChild(self.objects[a])
 	end
-	
-	self:addEventListener("enterEnd", self.enterEnd, self)
-end
-
-function TrackScene:enterEnd()
-	
-	-- Create box2d camera
-	local camera = Camera.new(self)
-	self.camera = camera
-	
-	self:debugEnabled()
-	
-	self:drawPlayer()
-	self:drawController()
-	
-	self:addEventListener(Event.ENTER_FRAME, self.onEnterFrame, self)
-end
-
--- Draw grass background
-function TrackScene:drawBackground()
-	
-	local bg = Shape.new()
-	bg:setFillStyle(Shape.TEXTURE, Texture.new("images/grass.png", true, {wrap = Texture.REPEAT}) )    
-	bg:beginPath(Shape.NON_ZERO)
-	bg:moveTo(-half_width, -bg_height)
-	bg:lineTo(3 * width, -bg_height)
-	bg:lineTo(3 * width, 2 * height)
-	bg:lineTo(-half_width, 2* height)
-	bg:lineTo(-half_width, -bg_height)
-	bg:endPath()
-	
-	self.map:addChild(bg)
-	
-	local  map = self.map
-	self.worldWidth = map:getWidth()
-	self.worldHeight = map:getHeight()
-	
-	--print(map:getWidth(), map:getHeight())
-	
-	
-	--[[
-	local vertices = {0, 0,
-					  0, 400,
-					  400, 400,
-					  400, 0}
-	
-	local vertices = {
-						-width, -5 * height,
-						5 * width, -5 * height,
-						5 * width, height,
-						-width, height,
-						-width, -5 * height
-						} ]]--
-	--self.world:createTerrain(bg, vertices)
 end
 
 -- Draw car player
@@ -229,12 +220,8 @@ function TrackScene:drawPlayer()
 	
 	self.map:addChild(player)
 	
-	player:setPosition(340, 300)
-	
-	--local camera = self.camera
-	--camera:setTarget(player:getPosition())
-	--camera:update()
-	
+	player:setPosition(340, 2200)
+		
 	-- Physic player body
 	local world = self.world
 	local config = {
@@ -243,6 +230,10 @@ function TrackScene:drawPlayer()
 				   }
 	world:createRectangle(player, config)
 	player.body:setPosition(player:getX(), player:getY())
+	
+	local player = self.player
+	self.map:setPosition(-player:getX() + width * 0.5, -player:getY() + height * 0.5)
+	player.body:setPosition(width * 0.5, height * 0.5)
 end
 
 -- Draw objects near road
@@ -349,13 +340,8 @@ end
 
 -- Update camera and car player
 function TrackScene:onEnterFrame()
-	
-	--self.world:step(1/30, 8, 3)
-	--self.world:update()
-		
+			
 	self:updatePlayer()
-	--self:updateObjects()
-	
 	self.camera:update()
 end
 
@@ -364,52 +350,40 @@ function TrackScene:updatePlayer()
 	
 	--local camera = self.camera
 	local player = self.player
-		
+	--print("player:getY()" , player:getY())
+	--print("player.body:getY()", player:getY())
+	
+	--print("speed", self.speed)
+	
 	self.speed = self.speed + 0.1
 	if (self.speed > MAX_SPEED) then
 		self.speed = MAX_SPEED
 	end
 	
 	local speed = self.speed
-	
-	-- Update player
-	--[[
-	local rotation = player:getRotation() + self.inc
-	if (math.abs(self.inc) > 0 ) then
-		rotation = rotation + speed * 0.15 * self.inc
-	end
-	player:setRotation(rotation)
-	]]--
-	
+		
 	local angle = player.body:getAngle() + rad(self.inc)
 	player.body:setAngle(angle)
-	--player:setRotation(math.deg(angle))
-	
-	--rotation = rad(rotation)
-	--velocity[1] = speed * sin(rotation)
-	--velocity[2] = -speed * cos(rotation)
 	
 	local velocity = self.velocity
 	velocity[1] = speed * sin(angle)
 	velocity[2] = -speed * cos(angle)
 	
-	--player:setX(player:getX() + velocity[1])
-	--player:setY(player:getY() +  velocity[2])
+	--player.body:setPosition(player:getX() + self.map:getX(), player:getY() + self.map:getY())
+	--player.body:setPosition(player:getX(), player:getY())
 	
-	--local map = self.map
-	--map:setX(map:getX() - velocity[1])
-	--map:setY(map:getY() - velocity[2])
+	--self.map:setPosition(self.map:getX() - velocity[1], self.map:getY() - velocity[2])
+	--player.body:setLinearVelocity(velocity[1], velocity[2])
 		
-	player.body:setLinearVelocity(velocity[1], velocity[2])
+	self.world:step(1/30, 8, 3)
 	
-	--self.world:step(1/30, 8, 3)
-	self.world:update()
-	
-	-- Update sprite position and rotation	
-	--player:setPosition(player.body:getPosition())
+	player:setPosition(player:getX() + velocity[1], player:getY() + velocity[2])
+	player:setRotation(deg(player:getAngle()))
+	--player.body:setPosition(width * 0.5, height * 0.5)
 end
 
 -- Update collision objects position
+--[[
 function TrackScene:updateObjects()
 
 	local player = self.player
@@ -422,6 +396,7 @@ function TrackScene:updateObjects()
 		object.body:setPosition(object:getX() - player:getX(), object:getY() - player:getY())
 	end
 end
+]]--
 
 function TrackScene:onBeginContact(event)
 	--print("begin contact", event)

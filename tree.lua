@@ -25,6 +25,8 @@ end
 function Tree:updatePosition(x, y)
 	self:setPosition(x, y)
 	
+	--self.body:setPosition(self:getPosition())
+	
 	--local worldX, worldY = self.scene.camera:translate(x,y)
 	--self.body:setPosition(worldX, worldY)
 end
