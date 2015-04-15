@@ -20,8 +20,6 @@ function Camera:update()
 	local map = scene.map
 	local player = scene.player
 	
-	--define offsets
- 
 	local offsetX = 0
 	local offsetY = 0
  
@@ -30,33 +28,46 @@ function Camera:update()
 	elseif(player:getX() >= width * 0.5) then
 		offsetX = -(player:getX() - width * 0.5)
 	end
- 
-	--apply offset so scene
-	scene.map:setX(offsetX)
+
+	map:setX(offsetX)
 	
-	--print("offsetX", offsetY)
-	--check if we are not too close to upper or bottom wall
-	--so we won't go further that wall
- 
 	if((scene.worldHeight - player:getY()) < height * 0.5) then
 		offsetY = -scene.worldHeight + height
 	elseif(player:getY()>= height * 0.5) then
 		offsetY = -(player:getY() - height * 0.5)
 	end
+
+	map:setY(offsetY)	
 	
-	scene.map:setY(offsetY)
-		
+	--print(map:getNumChildren())
+	--[[
+	for i = 1, map:getNumChildren() do
+		--get specific sprite
+		local sprite = map:getChildAt(i)
+		-- check if sprite HAS a body (ie, physical object reference we added)
+		if sprite.body then
+			--update position to match box2d world object's position
+			--get physical body reference
+			local body = sprite.body
+			--get body coordinates
+			
+			local bodyX, bodyY = body:getPosition()
+			--print(bodyX, bodyY)
+			
+			--apply coordinates to sprite
+			sprite:setPosition(bodyX, bodyY)
+			--apply rotation to sprite
+			sprite:setRotation(body:getAngle() * 180 / math.pi)
+		end
+	end
+	]]--
+	
 	-- Update all box2d static objects
+	--[[
 	local objects = scene.objects
 	for a =1, #objects do
 		local object = objects[a]
 		object.body:setPosition(object:getX() + map:getX(), object:getY() + map:getY())
 	end
-	
-	player.body:setPosition(player:getX() + offsetX, player:getY() + offsetY)
-	
-	--local worldX, worldY = player.body:getPosition()
-	--player:setPosition(player.body:get
-	
-	--map:setPosition(-player:getX() + width * 0.5, -player:getY() + height * 0.5)
+	]]--
 end

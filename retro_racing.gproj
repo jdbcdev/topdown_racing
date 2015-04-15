@@ -1,8 +1,9 @@
 <project>
- <properties touchToMouse="1" assetsOnly="0" logicalWidth="480" logicalHeight="800" fps="30" autorotation="0" encryptCode="0" scaleMode="3" architecture="0" retinaDisplay="0" mouseTouchOrder="0" packageName="com.yourdomain.yourapp" mouseToTouch="1" iosDevice="0" orientation="1" encryptAssets="0">
+ <properties encryptCode="0" retinaDisplay="0" scaleMode="3" logicalWidth="480" packageName="com.yourdomain.yourapp" autorotation="0" fps="30" architecture="0" encryptAssets="0" orientation="1" mouseTouchOrder="0" iosDevice="0" mouseToTouch="1" assetsOnly="0" logicalHeight="800" touchToMouse="1">
   <imageScales/>
  </properties>
  <folder name="scenes">
+  <file source="game.lua"/>
   <file source="track.lua"/>
  </folder>
  <folder name="classes">

@@ -1,7 +1,7 @@
 
-require "box2d"
+require "tntCollision"
 
-TrackScene = Core.class(Sprite)
+GameScene = Core.class(Sprite)
 
 local MAX_SPEED = 4
 
@@ -11,10 +11,8 @@ local height = application:getContentHeight()
 local half_width = width * 0.5
 local half_height = height * 0.5
 
-local bg_width = 4 * width
 local bg_height = 6 * height
 local maxY = bg_height - half_height
-
 --[[
 local track = {
 				--1, 1, 1, 2, 4, 
@@ -48,7 +46,7 @@ local texture_trees = {
 						--Texture.new("images/tree3_00.png", true),
 						--Texture.new("images/tree5_00.png", true),
 					}
-local texture_car = Texture.new("images/blue_car.png", true)
+local texture_car = Texture.new("images/orange_car.png", true)
 
 local zoom = 1
 
@@ -58,15 +56,22 @@ local sin = math.sin
 local rad = math.rad
 local deg = math.deg
 
+local oBoxToObox = tntCollision.oBoxToObox
+local setCollisionAnchorPoint = tntCollision.setCollisionAnchorPoint
+local pointToBox = tntCollision.pointToBox
+local circleToCircle = tntCollision.circleToCircle
+
 -- Constructor
-function TrackScene:init()
+function GameScene:init()
 	
 	application:setBackgroundColor(0x000000)
 	
-	self.world = b2.World.new(0, 0, true)
-	self.world:addEventListener(Event.BEGIN_CONTACT, self.onBeginContact, self)
+	setCollisionAnchorPoint(0.5, 0.5)
 	
-	self.speed = 0.1
+	--self.world = b2.World.new(0, 0, true)
+	--self.world:addEventListener(Event.BEGIN_CONTACT, self.onBeginContact, self)
+	
+	self.speed = 1
 	self.velocity = {0, -1} -- Velocity vector
 	self.inc = 0
 		
@@ -80,10 +85,8 @@ function TrackScene:init()
 end
 
 
-function TrackScene:enterEnd()
-		
-	self:debugEnabled()
-	
+function GameScene:enterEnd()
+			
 	self:drawPlayer()
 	
 	-- Create box2d camera following car player
@@ -91,22 +94,14 @@ function TrackScene:enterEnd()
 	self.camera = camera
 	camera:update()
 	
-	-- Body player car
-	--local player = self.player
-	--local offsetX, offsetY = self.map:getX(), self.map:getY()
-	--player.body:setPosition(player:getX() + offsetX, player:getY() + offsetY)
-	
-	--self:drawController()
-	
-	self:addEventListener(Event.MOUSE_DOWN, self.onMouseDown, self)
+	self:drawController()
 	
 	self:addEventListener(Event.ENTER_FRAME, self.onEnterFrame, self)
-	self:addEventListener("exitBegin", self.onExitBegin, self)
 end
 
 -- Draw grass background
-function TrackScene:drawBackground()
-		
+function GameScene:drawBackground()
+	
 	local map = Sprite.new()
 	self:addChild(map)
 	self.map = map
@@ -115,8 +110,8 @@ function TrackScene:drawBackground()
 	bg:setFillStyle(Shape.TEXTURE, Texture.new("images/grass.png", true, {wrap = Texture.REPEAT}) )    
 	bg:beginPath(Shape.NON_ZERO)
 	bg:moveTo(0,0)
-	bg:lineTo(bg_width, 0)
-	bg:lineTo(bg_width, bg_height)
+	bg:lineTo(4 * width, 0)
+	bg:lineTo(4 * width, bg_height)
 	bg:lineTo(0, bg_height)
 	bg:lineTo(0, 0)
 	bg:endPath()
@@ -126,29 +121,14 @@ function TrackScene:drawBackground()
 	self.worldWidth = map:getWidth()
 	self.worldHeight = map:getHeight()
 	
-	print(bg_width, bg_height)
 	print(self.worldWidth, self.worldHeight)
 	
-	--local screenW = application:getContentWidth()
-	--local screenH = application:getContentHeight()
-	
-	--set world dimensions 
-	--x2 for this example
-	--self.worldW = screenW * 2
-	--self.worldH = screenH * 2
-	
-	--create bounding walls to surround world
-	--and not screen
-	self:wall(0,self.worldHeight/2,10,self.worldHeight/2*2)
-	self:wall(self.worldWidth/2,0,self.worldWidth,10)
-	self:wall(self.worldWidth,self.worldHeight/2,10,self.worldHeight)
-	self:wall(self.worldWidth/2,self.worldHeight,self.worldWidth,10)
 end
 
 -- Draw tiled circuit
-function TrackScene:drawCircuit()
+function GameScene:drawCircuit()
 	local dirX, dirY = 1, -1	
-	local posX, posY = 400, 2000
+	local posX, posY = 270, 2000
 	local previous_tile, previous_index
 	
 	self.objects = {}
@@ -236,7 +216,7 @@ function TrackScene:drawCircuit()
 end
 
 -- Draw car player
-function TrackScene:drawPlayer()
+function GameScene:drawPlayer()
 	local player = Bitmap.new(texture_car)
 	player:setAnchorPoint(0.5, 0.5)
 	player:setScale(0.5)
@@ -244,26 +224,11 @@ function TrackScene:drawPlayer()
 	
 	self.map:addChild(player)
 	
-	--player:setPosition(450, 2200)
-	player:setPosition(100, 100)
-		
-	-- Physic player body
-	local world = self.world
-	local config = {
-					type = "dynamic",
-					update = false
-				   }
-	world:createRectangle(player, config)
-
-	--player.body:setLinearDamping(0.4)
-	player.body:setAngularDamping(0.1)
-	player.body:setPosition(player:getX(), player:getY())
-	
-	print(player.body:getPosition())
+	player:setPosition(340, 2200)
 end
 
 -- Draw objects near road
-function TrackScene:drawObjects(tile, index)
+function GameScene:drawObjects(tile, index)
 		
 	if (index == 1) then
 	
@@ -311,7 +276,7 @@ function TrackScene:drawObjects(tile, index)
 end
 
 -- Draw left and right arrows to handle the car player
-function TrackScene:drawController()
+function GameScene:drawController()
 		
 	local icon_left = Bitmap.new(texture_left)
 	icon_left:setPosition(20, 360)
@@ -365,37 +330,17 @@ function TrackScene:drawController()
 end
 
 -- Update camera and car player
-function TrackScene:onEnterFrame()
+function GameScene:onEnterFrame()
 			
-	self:updatePlayer()	
-	
-	-- Update player sprite
-	--[[
-	local player = self.player
-	local offsetX, offsetY = self.map:getPosition()
-	local worldX, worldY = player.body:getPosition()
-		
-	player:setRotation(deg(player.body:getAngle()))
-	
-	local velocity = self.velocity
-	if (player:getX() > 400) then
-		player:setX(player:getX() + velocity[1])
-	end
-	
-	if (player:getY() > 200) then
-		player:setY(player:getY() + velocity[2])
-	end
-	]]--
-	
+	self:updatePlayer()
 	self.camera:update()
-	
 end
 
 -- Update car player position and rotation
-function TrackScene:updatePlayer()
+function GameScene:updatePlayer()
 	
 	local player = self.player
-		
+	
 	self.speed = self.speed + 0.1
 	if (self.speed > MAX_SPEED) then
 		self.speed = MAX_SPEED
@@ -403,125 +348,93 @@ function TrackScene:updatePlayer()
 		
 	local speed = self.speed
 	
-	local angle = player.body:getAngle() + rad(self.inc)
-	player.body:setAngle(angle)
-	
+	local angle = rad(player:getRotation() + self.inc)
 	local velocity = self.velocity
 	velocity[1] = speed * sin(angle)
 	velocity[2] = -speed * cos(angle)
 		
-	--local forwardX, forwardY = player.body:getWorldVector(0, -1)
-	--player.body:setLinearVelocity(forwardX, 0) --forwardY * 0.01)
-	--player.body:setLinearVelocity(forwardX, forwardY * 0.1) --forwardY * 0.01)
-	
-	--[[
-	local posX, posY = player.body:getPosition()
-	if (posX < width * 0.5) then
-		player.body:setPosition(posX + velocity[1], posY)
-	end
-	]]--
-		
-	--[[
-	if (angle > -math.pi and angle < math.pi) then
-		print("hacia arriba")
-		player.body:setPosition(posX + velocity[1], posY)
-	elseif (angle >= math.pi and angle < 2 * math.pi) then
-		player.body:setPosition(posX, posY + velocity[2])
-	end
-	]]--
-	
-	--player.body:setPosition(posX + velocity[1], posY + velocity[2])
-	
-	--print("angle", angle, velocity[1], velocity[2])
-	
-	self.world:step(1/30, 8, 3)
-	
-	--if (not self.collision) then
+	local newX, newY = player:getX() + velocity[1], player:getY() + velocity[2]
+	local collision = self:checkCollision(newX, newY, deg(angle))
+	if (not collision) then 
+		-- Update angle and player position
 		player:setRotation(deg(angle))
-		--player.body:setLinearVelocity(velocity[1], velocity[2])
-		--player:setPosition(player:getX() + velocity[1], player:getY() + velocity[2])
-				
-		local bodyX, bodyY = player.body:getPosition()
-		player:setPosition(bodyX, bodyY)
-	--end
-	
-	--self.collision = false
-end
-
--- Update collision objects position
---[[
-function TrackScene:updateObjects()
-
-	local player = self.player
-	
-	-- Update all objects
-	local objects = self.objects
-	for a =1, #objects do
-		local object = objects[a]
-		--object.body:setPosition(object:getX() + half_width - player:getX(), object:getY() + half_height - player:getY())
-		object.body:setPosition(object:getX() - player:getX(), object:getY() - player:getY())
+		player:setPosition(newX, newY)
 	end
-end
-]]--
-
-function TrackScene:onBeginContact(event)
-	--print("begin contact", event)
-	self.speed = 0
 		
-	self.collision = true
 end
 
--- Debug box2d
-function TrackScene:debugEnabled()
-	local debugDraw = b2.DebugDraw.new()
-	self.world:setDebugDraw(debugDraw)
-	self:addChild(debugDraw)
-end
+-- Check car player and objects collision
+function GameScene:checkCollision(boxAx, boxAy, boxAangle)
+	
+	local player = self.player
+	--local boxAx, boxAy = player:getPosition()
+	local boxAw, boxAh = player:getWidth(), player:getHeight()
+	--local boxAangle = player:getRotation()
+	
+	local objects = self.objects
+	--print("#objects", #objects)
+	
+	for a=1, #objects do
+		
+		local object = objects[a]
+		
+		local boxBx, boxBy = object:getPosition()
+		local boxBw, boxBh = object:getWidth(), object:getHeight()
+		local boxBangle = object:getRotation()
 
--- for creating objects using shape
--- as example - bounding walls
-function TrackScene:wall(x, y, width, height)
-	local wall = Shape.new()
-	--define wall shape
-	wall:beginPath()
-	wall:setFillStyle(Shape.SOLID, 0x0000ff)
-	--we make use (0;0) as center of shape,
-	--thus we have half of width and half of height in each direction
-	wall:moveTo(-width/2,-height/2)
-	wall:lineTo(width/2, -height/2)
-	wall:lineTo(width/2, height/2)
-	wall:lineTo(-width/2, height/2)
-	wall:closePath()
-	wall:endPath()
-	wall:setPosition(x,y)
-	
-	--create box2d physical object
-	local body = self.world:createBody{type = b2.STATIC_BODY}
-	body:setPosition(wall:getX(), wall:getY())
-	body:setAngle(wall:getRotation() * math.pi/180)
-	local poly = b2.PolygonShape.new()
-	poly:setAsBox(wall:getWidth()/2, wall:getHeight()/2)
-	local fixture = body:createFixture{shape = poly, density = 1.0, 
-	friction = 0.1, restitution = 0.8}
-	wall.body = body
-	wall.body.type = "wall"
-	
-	--add to scene
-	self.map:addChild(wall)
-	
-	--return created object
-	return wall
-end
+		local collision = oBoxToObox(boxAx, boxAy, boxAw, boxAh, boxAangle, 
+								boxBx, boxBy, boxBw, boxBh, boxBangle)
+		
+		local pointX = boxAx + boxAw * 0.5
+		local pointY = boxAy + boxAw * 0.5
+		--local collision = pointToBox(pointX, pointY, boxBx, boxBy, boxBw, boxBh)
+		--local collision = circleToCircle(boxAx, boxAy, boxAh * 0.5, boxBx, boxBy, boxBw * 0.5)
 
-function TrackScene:onMouseDown(event)
-	if self:hitTestPoint(event.x, event.y) then
-		local x, y = self.player:getPosition()
-		local xVect = (math.random(0,200)-100)*100
-		local yVect = (math.random(0,200)-100)*100
-		self.player.body:applyForce(xVect, yVect, x, y)
+		-- Collision response
+		if (collision) then
+		
+			-- Response collision	
+			local angle = rad(boxAangle)
+			--if (angle > - math.pi and angle < math.pi) then
+				
+				--[[
+				if (boxAx < boxBx) then
+					-- Move to the left
+					player:setX(player:getX() - 1)
+					--player:setRotation(-player:getRotation() * 0.05)
+				elseif (boxAx > boxBx) then
+					player:setX(player:getX() + 1)
+					--player:setRotation(-player:getRotation() * 0.05)
+				end
+				
+				if (boxAy < boxBy) then
+					-- Move to the down
+					
+					player:setY(player:getY() + 1)
+				elseif (boxAy > boxBy) then
+					player:setY(player:getY() - 1)
+					--player:setRotation(-player:getRotation() * 0.1)
+				end
+				]]--
+				
+				if (boxAx < boxBx) then	
+					player:setX(player:getX() - 1)
+				else
+					player:setX(player:getX() + 1)
+				end
+				
+				if (boxAy < boxBy) then
+					player:setY(player:getY() - 1)
+				else
+					player:setY(player:getY() + 1)
+				end
+				
+				
+			--end
+			
+			return true
+		end
 	end
-end
-
-function TrackScene:onExitBegin()
-  self:removeEventListener(Event.ENTER_FRAME, self.onEnterFrame, self)
+	
+	return false
 end

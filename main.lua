@@ -24,11 +24,11 @@ local function preloader()
 	
 	-- Game starting
 	--scenes = {"menu", "choose", "game", "score", "worldcup"}
-	scenes = {"track"}
+	scenes = {"game"}
 
 	sceneManager = SceneManager.new({
 		--["menu"] = MenuScene,
-		--["game"] = GameScene,
+		["game"] = GameScene,
 		["track"] = TrackScene
 		})
 
