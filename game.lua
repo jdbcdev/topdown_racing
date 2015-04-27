@@ -1,9 +1,7 @@
 
-require "tntCollision"
-
 GameScene = Core.class(Sprite)
 
-local MAX_SPEED = 4
+local MAX_SPEED = 10
 
 local width = application:getContentWidth()
 local height = application:getContentHeight()
@@ -13,6 +11,10 @@ local half_height = height * 0.5
 
 local bg_height = 6 * height
 local maxY = bg_height - half_height
+
+local senseX = 1
+local senseY = -1
+
 --[[
 local track = {
 				--1, 1, 1, 2, 4, 
@@ -42,7 +44,10 @@ local texture_left = Texture.new("images/left.png", true)
 local texture_right = Texture.new("images/right.png", true)
 local texture_goal = Texture.new("images/goal.png", true)
 local texture_trees = {
+						--Texture.new("images/block_grass.png", true),
 						Texture.new("images/tree_short.png", true),
+						Texture.new("images/tree_ugly.png", true)
+						
 						--Texture.new("images/tree3_00.png", true),
 						--Texture.new("images/tree5_00.png", true),
 					}
@@ -56,17 +61,65 @@ local sin = math.sin
 local rad = math.rad
 local deg = math.deg
 
-local oBoxToObox = tntCollision.oBoxToObox
-local setCollisionAnchorPoint = tntCollision.setCollisionAnchorPoint
-local pointToBox = tntCollision.pointToBox
-local circleToCircle = tntCollision.circleToCircle
+--local oBoxToObox = tntCollision.oBoxToObox
+--local setCollisionAnchorPoint = tntCollision.setCollisionAnchorPoint
+--local pointToBox = tntCollision.pointToBox
+--local circleToCircle = tntCollision.circleToCircle
+
+local function checkForIntersection(rectangle1, rectangle2)
+ 
+   local function chkForRotated(r1, r2)
+   
+      local x1 = r2:getX()-r1:getX()
+      local y1 = r2:getY()-r1:getY()
+ 
+      local x2 = x1*math.cos(math.rad(r1:getRotation())) + y1*math.sin(math.rad(r1:getRotation()))
+      local y2 = y1*math.cos(math.rad(r1:getRotation())) - x1*math.sin(math.rad(r1:getRotation()))
+ 
+      local angle1 = math.cos(math.rad(r2:getRotation() - r1:getRotation()))
+      local angle2 = math.sin(math.rad(r2:getRotation() - r1:getRotation()))
+      local arr1 = { r2.width*angle1, -r2.height*angle2, r2.width*angle1 - r2.height*angle2}
+      local arr2 = { r2.width*angle2, r2.height*angle1, r2.width*angle2 + r2.height*angle1}
+ 
+      local minX = 0 
+      local maxX = 0
+      local minY = 0
+      local maxY = 0
+      for i=1,3 do
+                if minX > arr1[i] then
+                        minX = arr1[i]
+                end
+                if maxX <  arr1[i] then
+                         maxX = arr1[i]
+                end
+                if minY > arr2[i] then
+                        minY = arr2[i]
+                end
+                if maxY <  arr2[i] then
+                         maxY = arr2[i]
+                end
+      end
+ 
+      return x2 + maxX < 0 or x2 + minX > r1.width or y2 + maxY < 0 or y2 + minY > r1.height
+   end
+   return not (chkForRotated(rectangle1,rectangle2) or chkForRotated(rectangle2,rectangle1))
+end
+
+function table.contains(table, element)
+  for _, value in pairs(table) do
+    if value == element then
+      return true
+    end
+  end
+  return false
+end
 
 -- Constructor
 function GameScene:init()
 	
 	application:setBackgroundColor(0x000000)
 	
-	setCollisionAnchorPoint(0.5, 0.5)
+	--setCollisionAnchorPoint(0.5, 0.5)
 	
 	--self.world = b2.World.new(0, 0, true)
 	--self.world:addEventListener(Event.BEGIN_CONTACT, self.onBeginContact, self)
@@ -132,6 +185,7 @@ function GameScene:drawCircuit()
 	local previous_tile, previous_index
 	
 	self.objects = {}
+	self.limits = {}
 	self.points = {} -- Polygon shape
 	
 	local map = self.map
@@ -203,7 +257,7 @@ function GameScene:drawCircuit()
 		tile:setPosition(posX, posY)
 		
 		-- Draw trees and other collision objects
-		self:drawObjects(tile, index)
+		self:drawObjects(tile, index, a)
 		
 		previous_tile = tile
 		previous_index = index
@@ -213,6 +267,8 @@ function GameScene:drawCircuit()
 	for a=1, #self.objects do
 		self.map:addChild(self.objects[a])
 	end
+	
+	self:drawLimits()
 end
 
 -- Draw car player
@@ -225,41 +281,91 @@ function GameScene:drawPlayer()
 	self.map:addChild(player)
 	
 	player:setPosition(340, 2200)
+	player.width = player:getWidth() - 5
+	player.height = player:getHeight() - 10
 end
 
 -- Draw objects near road
-function GameScene:drawObjects(tile, index)
-		
-	if (index == 1) then
+function GameScene:drawObjects(tile, tile_index, track_index)
+	
+	local next_index, next_tile
+	
+	if (track_index < #track) then
+	
+		--print(textures)
+		next_index = track[track_index + 1]
+		next_tile = Bitmap.new(textures[next_index])
+	else
+		next_index = track[1]
+		next_tile = Bitmap.new(textures[1])
+	end
+	
+	local points = {}
+	local offset = 15
+	
+	if (tile_index == 1) then
 	
 		for a=1, 3 do
-			local object_left = Tree.new(texture_trees[1], self)
-			object_left:setPosition(tile:getX() - 50, tile:getY() + (a-1) * 65)
+			--if (next_index == 1) then
 			
-			local object_right = Tree.new(texture_trees[1], self)
-			object_right:setPosition(tile:getX() + tile:getWidth() + 50, tile:getY() + (a-1) * 65)
-		end
-	elseif (index == 4) then
-	
-		for a=1, 3 do
-			local object_up = Tree.new(texture_trees[1], self)
-			self.map:addChild(object_up)
-			object_up:setPosition(tile:getX() + (a-1) * 65 + 30, tile:getY() - 45)
+				local object_left = Tree.new(texture_trees[random(2)], self)
+				object_left:setPosition(tile:getX() - 60, tile:getY() + (a-1) * 65)
 			
-			local object_down = Tree.new(texture_trees[1], self)
-			object_down:setPosition( tile:getX() + (a-1) * 65 + 30, tile:getY() + tile:getHeight() + 45)
+				local object_right = Tree.new(texture_trees[random(2)], self)
+				object_right:setPosition(tile:getX() + tile:getWidth() + 60, tile:getY() + (a-1) * 65)
+			--end
 		end
 		
-	elseif (index == 2) then
+		points[1] = { tile:getX() - offset, tile:getY() }
+		points[2] = { tile:getX() - offset, tile:getY() + tile:getHeight() }
+		points[3] = { tile:getX() + tile:getWidth() + offset, tile:getY()}
+		points[4] = { tile:getX() + tile:getWidth() + offset, tile:getY() + tile:getHeight() }
+		
+	elseif (tile_index == 4) then
+	
+		for a=1, 3 do
+			
+			--if (next_index == 4) then
+				local object_up = Tree.new(texture_trees[random(2)], self)
+				self.map:addChild(object_up)
+				object_up:setPosition(tile:getX() + (a-1) * 65 + 50, tile:getY() - 45)			
+			
+				local object_down = Tree.new(texture_trees[random(2)], self)
+				object_down:setPosition( tile:getX() + (a-1) * 65 + 30, tile:getY() + tile:getHeight() + 60)
+			--end
+		end
+		
+		points[1] = { tile:getX(), tile:getY() - offset }
+		points[2] = { tile:getX() + tile:getWidth(), tile:getY() - offset }
+		points[3] = { tile:getX(), tile:getY() + tile:getHeight() + offset }
+		points[4] = { tile:getX() + tile:getWidth(), tile:getY() + tile:getHeight() + offset }
+		
+	elseif (tile_index == 2) then
 		local object1 = Tree.new(texture_trees[1], self)
 		object1:setPosition(tile:getX(), tile:getY())
-	elseif (index == 3) then
+		
+		points[1] = { tile:getX() - offset, tile:getY() + tile:getHeight() }
+		points[2] = { tile:getX() + 40, tile:getY() - 20 }
+		points[3] = { tile:getX() + tile:getWidth(), tile:getY() - offset }
+		
+	elseif (tile_index == 3) then
 		local object_up = Tree.new(texture_trees[1], self)
 		object_up:setPosition(tile:getX() + tile:getWidth(), tile:getY())
-	elseif (index == 5) then
+		
+		points[1] = { tile:getX(), tile:getY() - offset}
+		points[2] = { tile:getX() + tile:getWidth() - 40, tile:getY() + 20}
+		points[3] = { tile:getX() + tile:getWidth() + offset, tile:getY() + tile:getHeight()}
+		
+	elseif (tile_index == 5) then
 		local object_up = Tree.new(texture_trees[1], self)
 		object_up:setPosition(tile:getX() + tile:getWidth(), tile:getY() + tile:getHeight())
-	elseif (index == 6) then
+		
+		points[1] = { tile:getX() + tile:getWidth() + offset, tile:getY()}
+		points[2] = { tile:getX() + tile:getWidth() - 40, tile:getY() + tile:getHeight() - 20}
+		points[3] = { tile:getX(), tile:getY() + tile:getHeight() + offset}
+		--points[4] = { tile:getX(), tile:getY() + tile:getHeight() + offset}
+		
+	elseif (tile_index == 6) then
 		local object1 = Tree.new(texture_trees[1], self)
 		object1:setPosition(tile:getX(), tile:getY() + tile:getHeight())
 		
@@ -271,8 +377,37 @@ function GameScene:drawObjects(tile, index)
 		
 		local object4 = Tree.new(texture_trees[1], self)
 		object4:setPosition(tile:getX() - 45, tile:getY() + tile:getHeight() - 200)
+		
+		points[1] = { tile:getX() + tile:getWidth(), tile:getY() + tile:getHeight() + offset }
+		points[2] = { tile:getX() + 40, tile:getY() + tile:getHeight() - 20}
+		points[3] = { tile:getX() - offset, tile:getY()}
 	end
 	
+	-- Insert points into the limits shape
+	for a=1, #points do
+		local point = points[a]
+		if (not table.contains(self.limits, point)) then
+			table.insert(self.limits, points[a])
+		end
+	end
+	
+end
+
+-- Draw limits of the track
+function GameScene:drawLimits()
+	
+	local limits = self.limits
+	print("#self.limits", limits)
+	
+	for a=1, #limits do
+		print(limits[a][1], limits[a][2])
+	end
+	
+	local shape = Shape.new()
+	--shape:setFillStyle(Shape.SOLID, 0xff0000)
+	shape:setLineStyle(2, 0xff0000, 1)
+	shape:drawPoly(limits)
+	self.map:addChild(shape)
 end
 
 -- Draw left and right arrows to handle the car player
@@ -348,7 +483,7 @@ function GameScene:updatePlayer()
 		
 	local speed = self.speed
 	
-	local angle = rad(player:getRotation() + self.inc)
+	local angle = rad(player:getRotation() + self.inc * 2)
 	local velocity = self.velocity
 	velocity[1] = speed * sin(angle)
 	velocity[2] = -speed * cos(angle)
@@ -382,8 +517,11 @@ function GameScene:checkCollision(boxAx, boxAy, boxAangle)
 		local boxBw, boxBh = object:getWidth(), object:getHeight()
 		local boxBangle = object:getRotation()
 
-		local collision = oBoxToObox(boxAx, boxAy, boxAw, boxAh, boxAangle, 
-								boxBx, boxBy, boxBw, boxBh, boxBangle)
+		--local collision = oBoxToObox(boxAx, boxAy, boxAw, boxAh, boxAangle, 
+		--						boxBx, boxBy, boxBw, boxBh, boxBangle)
+		
+		--local collision = checkForIntersection(player, object)
+		local collision = false
 		
 		local pointX = boxAx + boxAw * 0.5
 		local pointY = boxAy + boxAw * 0.5

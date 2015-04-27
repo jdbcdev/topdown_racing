@@ -1,5 +1,5 @@
 <project>
- <properties encryptCode="0" retinaDisplay="0" scaleMode="3" logicalWidth="480" packageName="com.yourdomain.yourapp" autorotation="0" fps="30" architecture="0" encryptAssets="0" orientation="1" mouseTouchOrder="0" iosDevice="0" mouseToTouch="1" assetsOnly="0" logicalHeight="800" touchToMouse="1">
+ <properties autorotation="0" encryptAssets="0" fps="30" scaleMode="3" mouseToTouch="1" iosDevice="0" packageName="com.yourdomain.yourapp" logicalHeight="800" logicalWidth="480" mouseTouchOrder="0" encryptCode="0" retinaDisplay="0" touchToMouse="1" assetsOnly="0" orientation="1" architecture="0">
   <imageScales/>
  </properties>
  <folder name="scenes">
@@ -14,6 +14,7 @@
   <file source="classes/camera.lua"/>
  </folder>
  <folder name="images">
+  <file source="images/block_grass.png"/>
   <file source="images/yellow.png"/>
   <file source="images/tree_short.png"/>
   <file source="images/blue_car.png"/>

@@ -24,7 +24,7 @@ local function preloader()
 	
 	-- Game starting
 	--scenes = {"menu", "choose", "game", "score", "worldcup"}
-	scenes = {"game"}
+	scenes = {"track"}
 
 	sceneManager = SceneManager.new({
 		--["menu"] = MenuScene,

@@ -427,7 +427,6 @@ end
 
 --[[ messing with set method ]]--
 
---[[
 Sprite._set = Sprite.set
 
 function Sprite:set(param, value)
@@ -501,7 +500,6 @@ function Sprite:set(param, value)
 	end
 	return self
 end
-]]--
 
 function Sprite:setX(x)
 	return self:set("x", x)

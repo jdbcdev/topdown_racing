@@ -3,7 +3,7 @@ require "box2d"
 
 TrackScene = Core.class(Sprite)
 
-local MAX_SPEED = 4
+local MAX_SPEED = 10
 
 local width = application:getContentWidth()
 local height = application:getContentHeight()
@@ -45,6 +45,7 @@ local texture_right = Texture.new("images/right.png", true)
 local texture_goal = Texture.new("images/goal.png", true)
 local texture_trees = {
 						Texture.new("images/tree_short.png", true),
+						Texture.new("images/tree_ugly.png", true)
 						--Texture.new("images/tree3_00.png", true),
 						--Texture.new("images/tree5_00.png", true),
 					}
@@ -96,9 +97,9 @@ function TrackScene:enterEnd()
 	--local offsetX, offsetY = self.map:getX(), self.map:getY()
 	--player.body:setPosition(player:getX() + offsetX, player:getY() + offsetY)
 	
-	--self:drawController()
+	self:drawController()
 	
-	self:addEventListener(Event.MOUSE_DOWN, self.onMouseDown, self)
+	--self:addEventListener(Event.MOUSE_DOWN, self.onMouseDown, self)
 	
 	self:addEventListener(Event.ENTER_FRAME, self.onEnterFrame, self)
 	self:addEventListener("exitBegin", self.onExitBegin, self)
@@ -244,8 +245,8 @@ function TrackScene:drawPlayer()
 	
 	self.map:addChild(player)
 	
-	--player:setPosition(450, 2200)
-	player:setPosition(100, 100)
+	player:setPosition(450, 2200)
+	--player:setPosition(100, 100)
 		
 	-- Physic player body
 	local world = self.world
@@ -268,43 +269,43 @@ function TrackScene:drawObjects(tile, index)
 	if (index == 1) then
 	
 		for a=1, 3 do
-			local object_left = Tree.new(texture_trees[1], self)
+			local object_left = Tree.new(texture_trees[random(2)], self)
 			object_left:setPosition(tile:getX() - 50, tile:getY() + (a-1) * 65)
 			
-			local object_right = Tree.new(texture_trees[1], self)
+			local object_right = Tree.new(texture_trees[random(2)], self)
 			object_right:setPosition(tile:getX() + tile:getWidth() + 50, tile:getY() + (a-1) * 65)
 		end
 	elseif (index == 4) then
 	
 		for a=1, 3 do
-			local object_up = Tree.new(texture_trees[1], self)
+			local object_up = Tree.new(texture_trees[random(2)], self)
 			self.map:addChild(object_up)
 			object_up:setPosition(tile:getX() + (a-1) * 65 + 30, tile:getY() - 45)
 			
-			local object_down = Tree.new(texture_trees[1], self)
+			local object_down = Tree.new(texture_trees[random(2)], self)
 			object_down:setPosition( tile:getX() + (a-1) * 65 + 30, tile:getY() + tile:getHeight() + 45)
 		end
 		
 	elseif (index == 2) then
-		local object1 = Tree.new(texture_trees[1], self)
+		local object1 = Tree.new(texture_trees[random(2)], self)
 		object1:setPosition(tile:getX(), tile:getY())
 	elseif (index == 3) then
-		local object_up = Tree.new(texture_trees[1], self)
+		local object_up = Tree.new(texture_trees[random(2)], self)
 		object_up:setPosition(tile:getX() + tile:getWidth(), tile:getY())
 	elseif (index == 5) then
-		local object_up = Tree.new(texture_trees[1], self)
+		local object_up = Tree.new(texture_trees[random(2)], self)
 		object_up:setPosition(tile:getX() + tile:getWidth(), tile:getY() + tile:getHeight())
 	elseif (index == 6) then
-		local object1 = Tree.new(texture_trees[1], self)
+		local object1 = Tree.new(texture_trees[random(2)], self)
 		object1:setPosition(tile:getX(), tile:getY() + tile:getHeight())
 		
-		local object2 = Tree.new(texture_trees[1], self)
+		local object2 = Tree.new(texture_trees[random(2)], self)
 		object2:setPosition(tile:getX() - 15, tile:getY() + tile:getHeight() - 100)
 		
-		local object3 = Tree.new(texture_trees[1], self)
+		local object3 = Tree.new(texture_trees[random(2)], self)
 		object3:setPosition(tile:getX() + 95, tile:getY() + tile:getHeight() + 20)
 		
-		local object4 = Tree.new(texture_trees[1], self)
+		local object4 = Tree.new(texture_trees[random(2)], self)
 		object4:setPosition(tile:getX() - 45, tile:getY() + tile:getHeight() - 200)
 	end
 	
@@ -403,13 +404,14 @@ function TrackScene:updatePlayer()
 		
 	local speed = self.speed
 	
-	local angle = player.body:getAngle() + rad(self.inc)
+	local angle = player.body:getAngle() + rad(self.inc * 2)
 	player.body:setAngle(angle)
 	
 	local velocity = self.velocity
 	velocity[1] = speed * sin(angle)
 	velocity[2] = -speed * cos(angle)
-		
+	player.body:setLinearVelocity(velocity[1], velocity[2])
+	
 	--local forwardX, forwardY = player.body:getWorldVector(0, -1)
 	--player.body:setLinearVelocity(forwardX, 0) --forwardY * 0.01)
 	--player.body:setLinearVelocity(forwardX, forwardY * 0.1) --forwardY * 0.01)
@@ -466,7 +468,7 @@ end
 
 function TrackScene:onBeginContact(event)
 	--print("begin contact", event)
-	self.speed = 0
+	--self.speed = 0
 		
 	self.collision = true
 end
@@ -475,7 +477,7 @@ end
 function TrackScene:debugEnabled()
 	local debugDraw = b2.DebugDraw.new()
 	self.world:setDebugDraw(debugDraw)
-	self:addChild(debugDraw)
+	self.map:addChild(debugDraw)
 end
 
 -- for creating objects using shape
@@ -513,6 +515,7 @@ function TrackScene:wall(x, y, width, height)
 	return wall
 end
 
+--[[
 function TrackScene:onMouseDown(event)
 	if self:hitTestPoint(event.x, event.y) then
 		local x, y = self.player:getPosition()
@@ -521,6 +524,7 @@ function TrackScene:onMouseDown(event)
 		self.player.body:applyForce(xVect, yVect, x, y)
 	end
 end
+]]--
 
 function TrackScene:onExitBegin()
   self:removeEventListener(Event.ENTER_FRAME, self.onEnterFrame, self)
