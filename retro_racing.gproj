@@ -1,12 +1,16 @@
 <project>
- <properties autorotation="0" encryptAssets="0" fps="30" scaleMode="3" mouseToTouch="1" iosDevice="0" packageName="com.yourdomain.yourapp" logicalHeight="800" logicalWidth="480" mouseTouchOrder="0" encryptCode="0" retinaDisplay="0" touchToMouse="1" assetsOnly="0" orientation="1" architecture="0">
+ <properties fps="30" mouseToTouch="1" encryptCode="0" encryptAssets="0" scaleMode="3" touchToMouse="1" assetsOnly="0" packageName="com.yourdomain.yourapp" logicalWidth="480" logicalHeight="800" autorotation="0" orientation="1" iosDevice="0" architecture="0" retinaDisplay="0" mouseTouchOrder="0">
   <imageScales/>
  </properties>
+ <folder name="fonts">
+  <file source="fonts/futur1.ttf"/>
+ </folder>
  <folder name="scenes">
   <file source="game.lua"/>
   <file source="track.lua"/>
  </folder>
  <folder name="classes">
+  <file source="vector.lua"/>
   <file source="classes/scenemanager.lua"/>
   <file source="classes/gtween.lua"/>
   <file source="classes/GiderosCodingEasy.lua"/>
@@ -39,6 +43,7 @@
   <file source="images/green_car.png"/>
   <file source="images/grass.png"/>
  </folder>
+ <file source="player.lua"/>
  <file source="tree.lua"/>
  <file source="main.lua"/>
 </project>

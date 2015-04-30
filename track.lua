@@ -3,8 +3,6 @@ require "box2d"
 
 TrackScene = Core.class(Sprite)
 
-local MAX_SPEED = 10
-
 local width = application:getContentWidth()
 local height = application:getContentHeight()
 
@@ -49,7 +47,12 @@ local texture_trees = {
 						--Texture.new("images/tree3_00.png", true),
 						--Texture.new("images/tree5_00.png", true),
 					}
-local texture_car = Texture.new("images/blue_car.png", true)
+local texture_cars = {
+						Texture.new("images/blue_car.png", true),
+						Texture.new("images/yellow_car.png", true),
+					}
+
+local font_hud = TTFont.new("fonts/futur1.ttf", 20)
 
 local zoom = 1
 
@@ -58,6 +61,10 @@ local cos = math.cos
 local sin = math.sin
 local rad = math.rad
 local deg = math.deg
+
+local function seek(target)
+	
+end
 
 -- Constructor
 function TrackScene:init()
@@ -68,9 +75,12 @@ function TrackScene:init()
 	self.world:addEventListener(Event.BEGIN_CONTACT, self.onBeginContact, self)
 	
 	self.speed = 0.1
-	self.velocity = {0, -1} -- Velocity vector
+	--self.velocity = {0, -1} -- Velocity vector
 	self.inc = 0
-		
+	self.senseX = 1
+	self.senseY = -1
+	self.laps = 1
+	
 	self:drawBackground()
 	self:drawCircuit()
 	
@@ -83,24 +93,19 @@ end
 
 function TrackScene:enterEnd()
 		
-	self:debugEnabled()
+	--self:debugEnabled()
 	
-	self:drawPlayer()
+	self:drawCars()
+	self:drawHUD()
+	--self:drawPlayer()
 	
 	-- Create box2d camera following car player
 	local camera = Camera.new(self)
 	self.camera = camera
 	camera:update()
 	
-	-- Body player car
-	--local player = self.player
-	--local offsetX, offsetY = self.map:getX(), self.map:getY()
-	--player.body:setPosition(player:getX() + offsetX, player:getY() + offsetY)
-	
 	self:drawController()
-	
-	--self:addEventListener(Event.MOUSE_DOWN, self.onMouseDown, self)
-	
+
 	self:addEventListener(Event.ENTER_FRAME, self.onEnterFrame, self)
 	self:addEventListener("exitBegin", self.onExitBegin, self)
 end
@@ -129,17 +134,8 @@ function TrackScene:drawBackground()
 	
 	print(bg_width, bg_height)
 	print(self.worldWidth, self.worldHeight)
-	
-	--local screenW = application:getContentWidth()
-	--local screenH = application:getContentHeight()
-	
-	--set world dimensions 
-	--x2 for this example
-	--self.worldW = screenW * 2
-	--self.worldH = screenH * 2
-	
-	--create bounding walls to surround world
-	--and not screen
+		
+	--create bounding walls to surround world and not screen
 	self:wall(0,self.worldHeight/2,10,self.worldHeight/2*2)
 	self:wall(self.worldWidth/2,0,self.worldWidth,10)
 	self:wall(self.worldWidth,self.worldHeight/2,10,self.worldHeight)
@@ -224,7 +220,7 @@ function TrackScene:drawCircuit()
 		tile:setPosition(posX, posY)
 		
 		-- Draw trees and other collision objects
-		self:drawObjects(tile, index)
+		self:drawObjects(tile, index, a)
 		
 		previous_tile = tile
 		previous_index = index
@@ -234,19 +230,47 @@ function TrackScene:drawCircuit()
 	for a=1, #self.objects do
 		self.map:addChild(self.objects[a])
 	end
+	
+	self:drawPoints()
+end
+
+-- Draw all cars
+function TrackScene:drawCars()
+
+	local coords = {
+						{460, 2200},
+						{580, 2200}
+					}
+	local cars = {}
+	
+	for a = 1, #coords do
+		local player = Player.new(texture_cars[a], self)
+		player:updatePosition(coords[a][1], coords[a][2])
+		
+		if (a==1) then
+			self.player = player
+		else
+			player.computer = true
+		end
+		
+		cars[a] = player
+		self.map:addChild(player)
+	end
+	
+	self.cars = cars
 end
 
 -- Draw car player
-function TrackScene:drawPlayer()
+function TrackScene:drawPlayer(x, y)
+	
+	--[[
 	local player = Bitmap.new(texture_car)
 	player:setAnchorPoint(0.5, 0.5)
 	player:setScale(0.5)
 	self.player = player
-	
+
 	self.map:addChild(player)
-	
 	player:setPosition(450, 2200)
-	--player:setPosition(100, 100)
 		
 	-- Physic player body
 	local world = self.world
@@ -260,42 +284,63 @@ function TrackScene:drawPlayer()
 	player.body:setAngularDamping(0.1)
 	player.body:setPosition(player:getX(), player:getY())
 	
-	print(player.body:getPosition())
+	]]--
+	
+	local player = Player.new(texture_car, self)
+	player:updatePosition(450, 2200)
+	self.player = player
+	
+	self.map:addChild(player)
+	
 end
 
 -- Draw objects near road
-function TrackScene:drawObjects(tile, index)
-		
-	if (index == 1) then
+function TrackScene:drawObjects(tile, tile_index, track_index)
+	
+	--local points = {}
+	--print("tile:getWidth()", tile:getWidth())
+	
+	if (tile_index == 1) then
 	
 		for a=1, 3 do
 			local object_left = Tree.new(texture_trees[random(2)], self)
-			object_left:setPosition(tile:getX() - 50, tile:getY() + (a-1) * 65)
+			object_left:setPosition(tile:getX() - 60, tile:getY() + (a-1) * 65)
 			
 			local object_right = Tree.new(texture_trees[random(2)], self)
-			object_right:setPosition(tile:getX() + tile:getWidth() + 50, tile:getY() + (a-1) * 65)
+			object_right:setPosition(tile:getX() + tile:getWidth() + 60, tile:getY() + (a-1) * 65)
 		end
-	elseif (index == 4) then
+		
+		self.points[track_index] = { tile:getX() + tile:getWidth() * 0.5, tile:getY() + tile:getHeight() * 0.5}
+		
+	elseif (tile_index == 4) then
 	
 		for a=1, 3 do
 			local object_up = Tree.new(texture_trees[random(2)], self)
 			self.map:addChild(object_up)
-			object_up:setPosition(tile:getX() + (a-1) * 65 + 30, tile:getY() - 45)
+			object_up:setPosition(tile:getX() + (a-1) * 65 + 50, tile:getY() - 45)
 			
 			local object_down = Tree.new(texture_trees[random(2)], self)
-			object_down:setPosition( tile:getX() + (a-1) * 65 + 30, tile:getY() + tile:getHeight() + 45)
+			object_down:setPosition( tile:getX() + (a-1) * 65 + 50, tile:getY() + tile:getHeight() + 45)
 		end
 		
-	elseif (index == 2) then
+		self.points[track_index] = { tile:getX() + tile:getWidth() * 0.5, tile:getY() + tile:getHeight() * 0.5}
+		
+	elseif (tile_index == 2) then
 		local object1 = Tree.new(texture_trees[random(2)], self)
 		object1:setPosition(tile:getX(), tile:getY())
-	elseif (index == 3) then
+		
+		self.points[track_index] = { tile:getX() + tile:getWidth() * 0.8, tile:getY() + tile:getHeight() * 0.5}
+	elseif (tile_index == 3) then
 		local object_up = Tree.new(texture_trees[random(2)], self)
 		object_up:setPosition(tile:getX() + tile:getWidth(), tile:getY())
-	elseif (index == 5) then
+		
+		self.points[track_index] = { tile:getX() + tile:getWidth() * 0.2, tile:getY() + tile:getHeight() * 0.5}
+	elseif (tile_index == 5) then
 		local object_up = Tree.new(texture_trees[random(2)], self)
 		object_up:setPosition(tile:getX() + tile:getWidth(), tile:getY() + tile:getHeight())
-	elseif (index == 6) then
+		
+		self.points[track_index] = { tile:getX() + tile:getWidth() * 0.2, tile:getY() + tile:getHeight() * 0.5}
+	elseif (tile_index == 6) then
 		local object1 = Tree.new(texture_trees[random(2)], self)
 		object1:setPosition(tile:getX(), tile:getY() + tile:getHeight())
 		
@@ -307,8 +352,28 @@ function TrackScene:drawObjects(tile, index)
 		
 		local object4 = Tree.new(texture_trees[random(2)], self)
 		object4:setPosition(tile:getX() - 45, tile:getY() + tile:getHeight() - 200)
+		
+		self.points[track_index] = { tile:getX() + tile:getWidth() * 0.8, tile:getY() + tile:getHeight() * 0.5}
 	end
+end
+
+-- Draw limits of the track
+function TrackScene:drawPoints()
 	
+	local points = self.points
+	print("#self.points", #points)
+	
+	--[[
+	for a=1, #points do
+		print(points[a][1], points[a][2])
+	end
+	]]--
+	
+	local shape = Shape.new()
+	--shape:setFillStyle(Shape.SOLID, 0xff0000)
+	shape:setLineStyle(2, 0xff0000, 1)
+	shape:drawPoly(points)
+	self.map:addChild(shape)
 end
 
 -- Draw left and right arrows to handle the car player
@@ -365,28 +430,32 @@ function TrackScene:drawController()
 	self:addChild(icon_right)
 end
 
+-- Draw laps and elapsed time
+function TrackScene:drawHUD()
+	local text_laps = TextField.new(font_hud, "LAP : "..self.laps)
+	text_laps:setTextColor(0xffffff)
+	text_laps:setShadow(1, 1, 0x0000ff)
+	text_laps:setPosition(50, 15)
+	self:addChild(text_laps)
+	
+	self.text_laps = text_laps
+end
+
+-- Update laps counter
+function TrackScene:updateLaps()
+
+	self.laps = self.laps + 1
+	
+	local text_laps = self.text_laps
+	text_laps:setText("LAP : "..self.laps)
+end
+
 -- Update camera and car player
 function TrackScene:onEnterFrame()
 			
-	self:updatePlayer()	
+	--self:updatePlayer()	
 	
-	-- Update player sprite
-	--[[
-	local player = self.player
-	local offsetX, offsetY = self.map:getPosition()
-	local worldX, worldY = player.body:getPosition()
-		
-	player:setRotation(deg(player.body:getAngle()))
-	
-	local velocity = self.velocity
-	if (player:getX() > 400) then
-		player:setX(player:getX() + velocity[1])
-	end
-	
-	if (player:getY() > 200) then
-		player:setY(player:getY() + velocity[2])
-	end
-	]]--
+	self:updateCars()
 	
 	self.camera:update()
 	
@@ -396,80 +465,198 @@ end
 function TrackScene:updatePlayer()
 	
 	local player = self.player
-		
-	self.speed = self.speed + 0.1
-	if (self.speed > MAX_SPEED) then
-		self.speed = MAX_SPEED
-	end
-		
-	local speed = self.speed
+				
+	local speed = player:increaseSpeed()
 	
 	local angle = player.body:getAngle() + rad(self.inc * 2)
 	player.body:setAngle(angle)
 	
-	local velocity = self.velocity
-	velocity[1] = speed * sin(angle)
-	velocity[2] = -speed * cos(angle)
-	player.body:setLinearVelocity(velocity[1], velocity[2])
-	
-	--local forwardX, forwardY = player.body:getWorldVector(0, -1)
-	--player.body:setLinearVelocity(forwardX, 0) --forwardY * 0.01)
-	--player.body:setLinearVelocity(forwardX, forwardY * 0.1) --forwardY * 0.01)
-	
-	--[[
-	local posX, posY = player.body:getPosition()
-	if (posX < width * 0.5) then
-		player.body:setPosition(posX + velocity[1], posY)
-	end
-	]]--
+	--local velocity = self.velocity
+	local velocityX = speed * sin(angle)
+	local velocityY = -speed * cos(angle)
+	player.body:setLinearVelocity(velocityX, velocityY)
 		
-	--[[
-	if (angle > -math.pi and angle < math.pi) then
-		print("hacia arriba")
-		player.body:setPosition(posX + velocity[1], posY)
-	elseif (angle >= math.pi and angle < 2 * math.pi) then
-		player.body:setPosition(posX, posY + velocity[2])
+	self.world:step(1/30, 8, 3)
+
+	player:setRotation(deg(angle))
+				
+	local bodyX, bodyY = player.body:getPosition()
+	player:setPosition(bodyX, bodyY)
+	
+end
+
+-- Update all cars
+function TrackScene:updateCars()
+
+	local points = self.points
+	
+	for a=1, #self.cars do
+		local car = self.cars[a]
+		car:increaseSpeed()
+		
+		local speed = car.speed
+		
+		-- Near control point
+		local index = car.index
+		local diff = (car:getX() - points[index][1]) + (car:getY() - points[index][2])
+		local diff2 = (car:getX() - points[index + 1][1]) + (car:getY() - points[index + 1][2])
+		local dist = diff * diff
+		local dist2 = diff2 * diff2
+			
+		local change = false
+		if (dist2 < dist) then
+			index = index + 1
+			print("index", index)
+			change = true
+		end
+			
+		-- Reset index to 1
+		if (index == #points) then
+			index = 1
+			
+			if (not car.computer) then
+				self:updateLaps()
+			end
+			
+		end
+		
+		if (car.computer) then -- Every car must follow the path
+					
+			local segment = {points[index + 1][1] - points[index][1],
+							 points[index + 1][2] - points[index][2]}
+			local velocity = Vector.new(car.body:getLinearVelocity())
+			local location = Vector.new(car:getX() + velocity.x, car:getY() + velocity.y) --Position())
+								
+			-- TODO car.start = start 
+			-- http://natureofcode.com/book/chapter-6-autonomous-agents/
+			local path_start = Vector.new(points[index][1], points[index][2])
+			local path_end
+			if (index < #points) then
+				path_end = Vector.new(points[index + 1][1], points[index + 1][2])
+			else
+				path_end = Vector.new(points[1][1], points[1][2])
+			end
+			
+			--[[
+			if (change) then
+				print("start", path_start:unpack())
+				print("end", path_end:unpack())
+				print("********************************")
+			end
+			]]--
+			
+			local vector_a = Vector.sub(location, path_start)
+			local vector_b = Vector.sub(path_end, path_start)
+			
+			--local theta = vector_a:angleTo(vector_b)
+			vector_b:normalize_inplace()
+			--vector_b = Vector.mul(vector_a:len() * cos(theta), vector_b)
+			vector_b = Vector.mul(vector_a:dot(vector_b), vector_b)
+			
+			local normal_point = Vector.add(path_start, vector_b)						
+			local angle = car.body:getAngle()
+			
+			local distance = Vector.dist(location, normal_point)
+			--print("distance", distance)
+			
+			if (distance > 20) then
+				-- Seek target point
+				vector_b = Vector.sub(path_end, path_start)
+				vector_b:normalize_inplace()
+				vector_b = Vector.mul(60, vector_b) -- TODO Change 60 related to car speed
+				local target = Vector.add(normal_point, vector_b)
+				
+				local desired = Vector.sub(target, location)
+				--desired:normalize_inplace()
+				
+				--if (change) then
+					
+					--local angle_target = vector_b:angleTo(velocity)
+					local angle_target = desired:angleTo(velocity)
+					
+					--print("target", target:unpack())
+					--print("location", location:unpack())
+					--print("desired", desired:unpack())
+					
+					--print("angle_target", deg(angle_target))
+					
+					-- Apply force (change angle) depending on target						
+					if (angle_target > 0) then
+						angle = angle + rad(2)
+					elseif (angle_target < 0) then
+						angle = angle + rad(-2)
+					end
+				--end
+				
+				--local forceX, forceY = desired:unpack()
+				--local posX, posY = car.body:getPosition()
+				--car.body:applyForce(forceX, forceY, posX, posY)
+			end
+						
+			--[[local angle_target = desired:angleTo(velocity)
+			if (angle_target > math.pi) then
+				print("angle_target", deg(angle_target))
+				angle_target = 2 * math.pi - angle_target
+			end
+			
+			-- Rotate to follow right way
+			local angle = car.body:getAngle()
+			if (angle_target > 0) then
+				angle = angle + rad(2)
+			elseif (angle_target < 0) then
+				angle = angle + rad(-2)
+			end
+			]]--
+			
+			--[[if (segment[1] > 0 and segment[2] < 0) or (segment[1] > 0 and segment[2] > 0) then -- and car:getX() < points[index][1]) then
+				--print(car:getY(), points[index][2])
+				angle = angle + rad(2)
+			elseif (segment[1] < 0 and segment[2] > 0 or (segment[1] < 0 and segment[2] < 0) then -- and car:getY() < points[index][2]) then
+				angle = angle + rad(-2)
+			--elseif (segment[2] < 0 and car:getY() > points[index][2]) then
+				--angle = angle + rad(-2)
+			end
+			]]--
+			
+			--local angle = car.body:getAngle()
+			car.angle = angle
+			--car.body:setAngle(angle)
+			
+		else
+			-- Use arrows to rotate car
+			local angle = car.body:getAngle() + rad(self.inc * 2)
+			car.body:setAngle(angle)
+			
+			car.angle = angle	
+		end
+		
+		car.index = index
+		
+		local angle = car.body:getAngle()
+		local velocityX = speed * sin(angle)
+		local velocityY = -speed * cos(angle)
+		car.body:setLinearVelocity(velocityX, velocityY)
 	end
-	]]--
 	
-	--player.body:setPosition(posX + velocity[1], posY + velocity[2])
-	
-	--print("angle", angle, velocity[1], velocity[2])
-	
+	-- Update box2d world
 	self.world:step(1/30, 8, 3)
 	
-	--if (not self.collision) then
-		player:setRotation(deg(angle))
-		--player.body:setLinearVelocity(velocity[1], velocity[2])
-		--player:setPosition(player:getX() + velocity[1], player:getY() + velocity[2])
-				
-		local bodyX, bodyY = player.body:getPosition()
-		player:setPosition(bodyX, bodyY)
-	--end
-	
-	--self.collision = false
-end
-
--- Update collision objects position
---[[
-function TrackScene:updateObjects()
-
-	local player = self.player
-	
-	-- Update all objects
-	local objects = self.objects
-	for a =1, #objects do
-		local object = objects[a]
-		--object.body:setPosition(object:getX() + half_width - player:getX(), object:getY() + half_height - player:getY())
-		object.body:setPosition(object:getX() - player:getX(), object:getY() - player:getY())
+	-- Update sprite position
+	for a=1, #self.cars do
+		local car = self.cars[a]
+		
+		local angle = car.angle
+		car:setRotation(deg(angle))
+		
+		local bodyX, bodyY = car.body:getPosition()
+		car:setPosition(bodyX, bodyY)
 	end
 end
-]]--
 
+-- Collision callback
 function TrackScene:onBeginContact(event)
-	--print("begin contact", event)
+	
 	--self.speed = 0
-		
 	self.collision = true
 end
 
@@ -514,17 +701,6 @@ function TrackScene:wall(x, y, width, height)
 	--return created object
 	return wall
 end
-
---[[
-function TrackScene:onMouseDown(event)
-	if self:hitTestPoint(event.x, event.y) then
-		local x, y = self.player:getPosition()
-		local xVect = (math.random(0,200)-100)*100
-		local yVect = (math.random(0,200)-100)*100
-		self.player.body:applyForce(xVect, yVect, x, y)
-	end
-end
-]]--
 
 function TrackScene:onExitBegin()
   self:removeEventListener(Event.ENTER_FRAME, self.onEnterFrame, self)

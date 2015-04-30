@@ -11,11 +11,14 @@ function Tree:init(texture, scene)
 	self.height = self:getHeight() - 10
 	
 	local world = scene.world
-	local config = {
+	if (world) then
+		local config = {
 					type = b2.DYNAMIC_BODY,
 					update = false
 				   }
-	world:createRectangle(self, config)
+		--world:createRectangle(self, config)
+		world:createCircle(self, config)
+	end
 	
 	local objects = scene.objects
 	table.insert(objects, self)
