@@ -1,5 +1,5 @@
 <project>
- <properties fps="30" mouseToTouch="1" encryptCode="0" encryptAssets="0" scaleMode="3" touchToMouse="1" assetsOnly="0" packageName="com.yourdomain.yourapp" logicalWidth="480" logicalHeight="800" autorotation="0" orientation="1" iosDevice="0" architecture="0" retinaDisplay="0" mouseTouchOrder="0">
+ <properties architecture="0" encryptAssets="0" assetsOnly="0" mouseToTouch="1" scaleMode="3" fps="30" logicalHeight="800" encryptCode="0" touchToMouse="1" mouseTouchOrder="0" packageName="com.yourdomain.yourapp" retinaDisplay="0" logicalWidth="480" iosDevice="0" autorotation="0" orientation="1">
   <imageScales/>
  </properties>
  <folder name="fonts">
@@ -18,6 +18,8 @@
   <file source="classes/camera.lua"/>
  </folder>
  <folder name="images">
+  <file source="images/pause.png"/>
+  <file source="images/circle_yellow.png"/>
   <file source="images/block_grass.png"/>
   <file source="images/yellow.png"/>
   <file source="images/tree_short.png"/>

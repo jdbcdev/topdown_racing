@@ -1,7 +1,7 @@
 
 Player = Core.class(Bitmap)
 
-local MAX_SPEED = 10
+local MAX_SPEED = 10 --10
 
 -- Constructor
 function Player:init(texture, scene)
