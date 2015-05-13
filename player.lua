@@ -1,7 +1,7 @@
 
 Player = Core.class(Bitmap)
 
-local MAX_SPEED = 10 --10
+local MAX_SPEED = 15 --10
 
 -- Constructor
 function Player:init(texture, scene)
@@ -13,7 +13,7 @@ function Player:init(texture, scene)
 	self.index = 1 -- Near point
 	self.computer = false
 	
-	self:setScale(0.5)
+	self:setScale(0.45)
 	
 	-- Physic player body
 	local world = scene.world

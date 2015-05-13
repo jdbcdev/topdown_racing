@@ -74,6 +74,8 @@ end
 -- Constructor
 function TrackScene:init()
 	
+	print("TrackScene")
+	
 	application:setBackgroundColor(0x000000)
 	
 	self.world = b2.World.new(0, 0, true)
@@ -82,8 +84,8 @@ function TrackScene:init()
 	self.speed = 0.1
 	--self.velocity = {0, -1} -- Velocity vector
 	self.inc = 0
-	self.senseX = 1
-	self.senseY = -1
+	self.dirX = 1
+	self.dirY = -1
 	self.laps = 1
 	
 	self:drawBackground()
@@ -152,14 +154,19 @@ function TrackScene:drawCircuit()
 	local dirX, dirY = 1, -1	
 	local posX, posY = 400, 2000
 	local previous_tile, previous_index
+	--local next_index
 	
 	self.objects = {}
 	self.points = {} -- Polygon shape
+	
+	self.borders = {} 
+	self.borders_inside = {} 
 	
 	local map = self.map
 	
 	for a=1, #track do
 		local index = track[a]
+				
 		local tile = Bitmap.new(textures[index])
 		map:addChild(tile)
 		
@@ -225,18 +232,26 @@ function TrackScene:drawCircuit()
 		tile:setPosition(posX, posY)
 		
 		-- Draw trees and other collision objects
+		self.dirX = dirX
+		self.dirY = dirY
+		
 		self:drawObjects(tile, index, a)
 		
 		previous_tile = tile
 		previous_index = index
+		
+		--print("dirY", dirY)
 	end
+	
+	--self:drawPoints()
+	self:drawBorders(self.borders)
+	self:drawBorders(self.borders_inside)
 	
 	-- Draw objects over track
 	for a=1, #self.objects do
 		self.map:addChild(self.objects[a])
 	end
 	
-	self:drawPoints()
 end
 
 -- Draw all cars
@@ -245,8 +260,8 @@ function TrackScene:drawCars()
 	local coords = {
 						{460, 2200},
 						{580, 2200},
-						--{460, 2300},
-						--{580, 2300}
+						{460, 2300},
+						{580, 2300}
 					}
 	local cars = {}
 	
@@ -307,41 +322,130 @@ function TrackScene:drawObjects(tile, tile_index, track_index)
 	--local points = {}
 	--print("tile:getWidth()", tile:getWidth())
 	
-	if (tile_index == 1) then
+	local EXTRA_BORDER = 30
+	local borders = self.borders
+	local borders_inside = self.borders_inside
 	
-		for a=1, 3 do
+	local next_index
+	if (track_index < #track) then
+		next_index = track[track_index + 1]
+	else
+		next_index = nil
+	end
+	
+	--print("next_index", next_index)
+	local dirY = self.dirY
+	
+	if (tile_index == 1) then -- Up to down or Down to up
+	
+		for a=1, 2 do
+		
 			local object_left = Tree.new(texture_trees[random(2)], self)
-			object_left:setPosition(tile:getX() - 60, tile:getY() + (a-1) * 65)
-			
+			object_left:setPosition(tile:getX() - 55, tile:getY() +  a * 70)
+
 			local object_right = Tree.new(texture_trees[random(2)], self)
-			object_right:setPosition(tile:getX() + tile:getWidth() + 60, tile:getY() + (a-1) * 65)
+			object_right:setPosition(tile:getX() + tile:getWidth() + 55, tile:getY() + a * 70)
 		end
 		
 		self.points[track_index] = { tile:getX() + tile:getWidth() * 0.5, tile:getY() + tile:getHeight() * 0.5}
 		
-	elseif (tile_index == 4) then
+		--print(self.dirX, self.dirY)
+		
+		-- Add points to collision border
+		if (dirY > 0) then
+			table.insert(borders, {tile:getX() + tile:getWidth() + EXTRA_BORDER, tile:getY() + EXTRA_BORDER})
+			table.insert(borders, {tile:getX() + tile:getWidth() + EXTRA_BORDER, tile:getY() + tile:getHeight() - EXTRA_BORDER})
+			
+			table.insert(borders_inside, {tile:getX() - EXTRA_BORDER, tile:getY() + EXTRA_BORDER})
+			table.insert(borders_inside, {tile:getX() - EXTRA_BORDER, tile:getY() + tile:getHeight() - EXTRA_BORDER})
+		else
+			table.insert(borders, {tile:getX() - EXTRA_BORDER, tile:getY() + tile:getHeight() - EXTRA_BORDER})
+			table.insert(borders, {tile:getX() - EXTRA_BORDER, tile:getY() + EXTRA_BORDER})
+			
+			table.insert(borders_inside, {tile:getX() + tile:getWidth() + EXTRA_BORDER, tile:getY() + tile:getHeight() - EXTRA_BORDER})
+			table.insert(borders_inside, {tile:getX() + tile:getWidth() + EXTRA_BORDER, tile:getY() + EXTRA_BORDER})
+		end
+			
+		
+	elseif (tile_index == 4) then -- Left to right or Right to left
 	
-		for a=1, 3 do
+		for a=1, 2 do
 			local object_up = Tree.new(texture_trees[random(2)], self)
-			self.map:addChild(object_up)
-			object_up:setPosition(tile:getX() + (a-1) * 65 + 50, tile:getY() - 45)
+			object_up:setPosition(tile:getX() + a * 65, tile:getY() - 65)
 			
 			local object_down = Tree.new(texture_trees[random(2)], self)
-			object_down:setPosition( tile:getX() + (a-1) * 65 + 50, tile:getY() + tile:getHeight() + 45)
+			object_down:setPosition( tile:getX() + a * 65, tile:getY() + tile:getHeight() + 65)
 		end
 		
 		self.points[track_index] = { tile:getX() + tile:getWidth() * 0.5, tile:getY() + tile:getHeight() * 0.5}
+		
+		--[[
+		local dirX = self.dirX
+		if (dirX > 0) then
+			table.insert(borders, {tile:getX() - EXTRA_BORDER, tile:getY() + EXTRA_BORDER})
+			table.insert(borders, {tile:getX() - EXTRA_BORDER, tile:getY() + tile:getHeight() - EXTRA_BORDER})
+		else
+			table.insert(borders, {tile:getX() - EXTRA_BORDER, tile:getY() + tile:getHeight() - EXTRA_BORDER})
+			table.insert(borders, {tile:getX() - EXTRA_BORDER, tile:getY() + EXTRA_BORDER})
+		end
+		]]--
 		
 	elseif (tile_index == 2) then
 		local object1 = Tree.new(texture_trees[random(2)], self)
 		object1:setPosition(tile:getX(), tile:getY())
 		
+		local object2 = Tree.new(texture_trees[random(2)], self)
+		object2:setPosition(tile:getX() - 55, tile:getY() + tile:getHeight())
+		
+		local object3 = Tree.new(texture_trees[random(2)], self)
+		object3:setPosition(tile:getX() - 50, tile:getY() + tile:getHeight() - 80)
+		
+		local object4 = Tree.new(texture_trees[random(2)], self)
+		object4:setPosition(tile:getX() + 80, tile:getY() - 10)
+		
+		local object5 = Tree.new(texture_trees[random(2)], self)
+		object5:setPosition(tile:getX() + 180, tile:getY() - 30)
+		
+		local object6 = Tree.new(texture_trees[random(2)], self)
+		object6:setPosition(tile:getX() - 40, tile:getY() + 100)
+		
 		self.points[track_index] = { tile:getX() + tile:getWidth() * 0.5, tile:getY() + tile:getHeight() * 0.8}
+		
+		-- Add points to collision border
+		if (dirY > 0) then
+			table.insert(borders, {tile:getX() + tile:getWidth() , tile:getY() - EXTRA_BORDER})
+			table.insert(borders, {tile:getX(), tile:getY() + EXTRA_BORDER})
+			table.insert(borders, {tile:getX() - EXTRA_BORDER, tile:getY() + tile:getHeight() - EXTRA_BORDER})
+						
+		else
+			table.insert(borders, {tile:getX() - EXTRA_BORDER, tile:getY() + tile:getHeight() - EXTRA_BORDER})
+			table.insert(borders, {tile:getX(), tile:getY() + EXTRA_BORDER})
+			table.insert(borders, {tile:getX() + tile:getWidth() , tile:getY() - EXTRA_BORDER})
+						
+		end
 	elseif (tile_index == 3) then
-		local object_up = Tree.new(texture_trees[random(2)], self)
-		object_up:setPosition(tile:getX() + tile:getWidth(), tile:getY())
+		--local object1 = Tree.new(texture_trees[random(2)], self)
+		--object1:setPosition(tile:getX() + tile:getWidth(), tile:getY())
+		
+		--local object2 = Tree.new(texture_trees[random(2)], self)
+		--object2:setPosition(tile:getX() + tile:getWidth() + 55, tile:getY() + self:getHeight())
+		
+		--local object3 = Tree.new(texture_trees[random(2)], self)
+		--object3:setPosition(tile:getX() + tile:getWidth() + 50, tile:getY() + self:getHeight() - 80)
 		
 		self.points[track_index] = { tile:getX() + tile:getWidth() * 0.2, tile:getY() + tile:getHeight() * 0.5}
+		
+		-- Add points to collision border
+		if (dirY > 0) then
+			table.insert(borders, {tile:getX(), tile:getY() - EXTRA_BORDER})
+			table.insert(borders, {tile:getX() + tile:getWidth(), tile:getY()})
+			table.insert(borders, {tile:getX() + tile:getWidth() + EXTRA_BORDER, tile:getY() + tile:getHeight() - EXTRA_BORDER})
+		else
+			table.insert(borders, {tile:getX() + tile:getWidth() + EXTRA_BORDER, tile:getY() + tile:getHeight() - EXTRA_BORDER})
+			table.insert(borders, {tile:getX() + tile:getWidth(), tile:getY()})
+			table.insert(borders, {tile:getX(), tile:getY() - EXTRA_BORDER})
+		end
+		
 	elseif (tile_index == 5) then
 		local object1 = Tree.new(texture_trees[random(2)], self)
 		object1:setPosition(tile:getX() + tile:getWidth(), tile:getY() + tile:getHeight())
@@ -353,6 +457,18 @@ function TrackScene:drawObjects(tile, tile_index, track_index)
 		object3:setPosition(tile:getX() + tile:getWidth() + 95, tile:getY() + tile:getHeight() + 20)
 		
 		self.points[track_index] = { tile:getX() + tile:getWidth() * 0.3, tile:getY() + tile:getHeight() * 0.3}
+		
+		-- Add points to collision border
+		if (dirY > 0) then
+			table.insert(borders, {tile:getX() + tile:getWidth() + EXTRA_BORDER, tile:getY()})
+			table.insert(borders, {tile:getX() + tile:getWidth(), tile:getY() + tile:getHeight()})
+			table.insert(borders, {tile:getX() , tile:getY() + tile:getHeight() + EXTRA_BORDER})
+		else
+			table.insert(borders, {tile:getX() , tile:getY() + tile:getHeight() + EXTRA_BORDER})
+			table.insert(borders, {tile:getX() + tile:getWidth(), tile:getY() + tile:getHeight()})
+			table.insert(borders, {tile:getX() + tile:getWidth() + EXTRA_BORDER, tile:getY()})
+		end
+		
 	elseif (tile_index == 6) then
 		local object1 = Tree.new(texture_trees[random(2)], self)
 		object1:setPosition(tile:getX(), tile:getY() + tile:getHeight())
@@ -367,10 +483,22 @@ function TrackScene:drawObjects(tile, tile_index, track_index)
 		object4:setPosition(tile:getX() - 45, tile:getY() + tile:getHeight() - 200)
 		
 		self.points[track_index] = { tile:getX() + tile:getWidth() * 0.8, tile:getY() + tile:getHeight() * 0.5}
+		
+		-- Add points to collision border
+		if (dirY > 0) then
+			table.insert(borders, {tile:getX() + EXTRA_BORDER, tile:getY()})
+			table.insert(borders, {tile:getX() , tile:getY() + tile:getHeight()})
+			table.insert(borders, {tile:getX() + tile:getWidth() , tile:getY() + tile:getHeight() + EXTRA_BORDER})
+		else
+			table.insert(borders, {tile:getX() + tile:getWidth() , tile:getY() + tile:getHeight() + EXTRA_BORDER})
+			table.insert(borders, {tile:getX() , tile:getY() + tile:getHeight()})
+			table.insert(borders, {tile:getX() - EXTRA_BORDER, tile:getY()})
+		end
+		
 	end
 end
 
--- Draw limits of the track
+-- Draw path of the track
 function TrackScene:drawPoints()
 	
 	local points = self.points
@@ -382,6 +510,7 @@ function TrackScene:drawPoints()
 	end
 	]]--
 	
+	--[[
 	local shape = Shape.new()
 	--shape:setFillStyle(Shape.SOLID, 0xff0000)
 	shape:setLineStyle(2, 0xff0000, 1)
@@ -394,6 +523,35 @@ function TrackScene:drawPoints()
 		target:setPosition(points[a][1], points[a][2])
 		self.map:addChild(target)
 	end
+	]]--
+end
+
+-- Draw borders of the track	
+function TrackScene:drawBorders(borders)
+	
+	--local borders = self.borders
+	
+	local shape = Shape.new()
+	shape:setLineStyle(4, 0x48D1CC)
+	self.map:addChild(shape)
+	
+	shape:drawPoly(borders)
+	
+	local world = self.world
+	--world:createTerrain(shape, self.borders)
+	local body = world:createBody{type = b2.STATIC_BODY}
+	
+	local vertices = {}
+	for a=1, #borders do
+		local x, y = unpack(borders[a])
+		table.insert(vertices, x)
+		table.insert(vertices, y)
+	end
+	
+	local chain = b2.ChainShape.new()
+	--chain:createChain(unpack(vertices))
+	
+	world:createTerrain(shape, vertices)
 end
 
 -- Draw left and right arrows to handle the car player
@@ -606,7 +764,7 @@ function TrackScene:updateCars()
 				-- Seek target point
 				vector_b = Vector.sub(path_end, path_start)
 				vector_b:normalize_inplace()
-				vector_b = Vector.mul(50, vector_b) -- TODO Change 60 related to car speed
+				vector_b = Vector.mul(80, vector_b) -- TODO Change 60 related to car speed
 				local target = Vector.add(normal_point, vector_b)
 				
 				local desired = Vector.sub(target, location)
@@ -615,7 +773,8 @@ function TrackScene:updateCars()
 				local angle_target = desired:angleTo(velocity)
 				
 				if (change) then
-					print("vector_b", vector_b:unpack())
+					--print("vector_b", vector_b:unpack())
+					
 					--print("velocity", velocity:unpack())
 					--print("angle_path", deg(angle_path))
 					--print("angle_target", deg(angle_target))
@@ -663,9 +822,11 @@ function TrackScene:updateCars()
 			car.angle = angle
 			car.body:setAngle(angle)
 			
+			--[[
 			if change then
 				print("index", index)
 			end
+			]]--
 		else
 			-- Use arrows to rotate car
 			local angle = car.body:getAngle() + rad(self.inc * 3)

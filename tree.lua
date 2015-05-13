@@ -10,6 +10,8 @@ function Tree:init(texture, scene)
 	self.width = self:getWidth()
 	self.height = self:getHeight() - 10
 	
+	-- Add collision object
+	--[[
 	local world = scene.world
 	if (world) then
 		local config = {
@@ -19,6 +21,7 @@ function Tree:init(texture, scene)
 		--world:createRectangle(self, config)
 		world:createCircle(self, config)
 	end
+	]]--
 	
 	local objects = scene.objects
 	table.insert(objects, self)
